@@ -1,0 +1,134 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"loadBalancerSku": {
+			"type": "string",			
+			"metadata": {
+				"description": "Standard LB"
+			},
+			"defaultValue": "Standard"
+		},
+		"location": {
+			"type": "string",
+			"metadata": {
+				"description": "Deployment location"
+			}
+		},
+
+		"virtualNetworkName": {
+			"type": "string",
+			"metadata": {
+				"description": "Name of the Virtual Network (VNET)"
+			}
+		},
+		"subnetInternalLBName": {
+			"type": "string",
+			"metadata": {
+				"description": "Name of the subnet"
+			}
+		},
+		"loadBalancerName": {
+			"type": "string",
+			"metadata": {
+				"description": "Name of the inbound load balancer"
+			}
+		},
+		"loadBalancerIP": {
+			"type": "string",
+			"metadata": {
+				"description": "IP Address of the inbound load balancer in the Trust network"
+			}
+		},
+		"ResourceGroupName1": {
+			"type": "string",
+			"defaultValue": "HUB-RG",
+			"metadata": {
+				"description": "First Resource Group Name"
+			}
+		},
+		"ResourceGroupName3": {
+			"type": "string",
+			"defaultValue": "LB-RG",
+			"metadata": {
+				"description": "Third Resource Group Name"
+			}
+		}
+	},
+
+	"variables": {
+		"vnetId": "[resourceId(parameters('ResourceGroupName1'), 'Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'))]",
+		"lbId": "[resourceId('Microsoft.Network/loadBalancers/', parameters('loadBalancerName'))]"
+	},
+
+	"resources": [
+		{ 
+			"apiVersion": "2017-08-01",
+			"type": "Microsoft.Network/loadBalancers",
+			"name": "[parameters('loadBalancerName')]",
+			"location": "[parameters('location')]",
+            "sku":
+            {
+                "name": "[parameters('loadBalancerSku')]"
+            },
+			"properties": {
+				"frontendIPConfigurations": [
+					{
+						"name": "Frontend",
+						"properties": {
+							"subnet": {
+								"id": "[concat(variables('vnetId'),'/subnets/',parameters ('subnetInternalLBName'))]"
+							},
+							"privateIPAllocationMethod": "Static",
+							"privateIPAddress": "[parameters('loadBalancerIP')]" 
+						}
+					}
+				],
+				"backendAddressPools": [
+					{
+						"name": "BackendPool"
+					}
+				],
+				"loadBalancingRules": [
+					{
+						"properties": {
+							"frontendIPConfiguration": {
+								"id": "[concat(variables('lbId'), '/frontendIpConfigurations/Frontend')]"
+							},
+							"backendAddressPool": {
+								"id": "[concat(variables('lbId'), '/backendAddressPools/BackendPool')]"
+							},
+							"probe": {
+								"id": "[concat(variables('lbId'), '/probes/lbprobe')]"
+							},
+							"protocol": "Tcp",
+							"frontendPort": 80,
+							"backendPort": 80,
+							"enableFloatingIP": false,
+							"idleTimeoutInMinutes": 4,
+							"loadDistribution": "SourceIPProtocol"
+						},
+						"Name": "lbrule"
+					}
+				],
+				"probes": [
+					{
+						"properties": {
+							"protocol": "Tcp",
+							"port": 22,
+							"intervalInSeconds": 15,
+							"numberOfProbes": 2
+						},
+						"name": "lbprobe"
+					}
+				]
+			}
+		}
+	],
+	"outputs" : {
+		"LoadBalancerFrontEndIp": {
+			"value": "[reference(concat('Microsoft.Network/loadBalancers/', parameters('loadBalancerName'))).frontendIPConfigurations[0].properties.privateIPAddress ]",
+			"type" : "string"
+		}
+	}
+}
