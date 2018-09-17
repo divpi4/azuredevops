@@ -1,0 +1,216 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"nsgName": {
+			"type": "string",
+			"defaultValue": "nsg-default1"
+		},
+		"virtualNetworkName": {
+			"type": "string",
+			"defaultValue": "vnet",
+			"metadata": {
+				"description": "VNET name"
+			}
+		},		
+		"virtualNetworkAddressPrefix": {
+			"type": "string",
+			"defaultValue": "172.31.16.0/20",
+			"metadata": {
+				"description": "CIDR1 for vnet using for Hub network"
+			}
+		},
+		"virtualNetworkAddressPrefix1": {
+			"type": "string",
+			"defaultValue": "10.241.192.32/28",
+			"metadata": {
+				"description": "CIDR2 for vnet using for Mgmt"
+			}
+		},
+		"mgmtSubnetName": {
+			"type": "string",
+			"defaultValue": "Mgmt",
+			"metadata": {
+				"description": "Subnet for Management"
+			}
+		},
+		"untrustSubnetName": {
+			"type": "string",
+			"defaultValue": "Untrust",
+			"metadata": {
+				"description": "Subnet for Untrust"
+			}
+		},
+		"trustSubnetName": {
+			"type": "string",
+			"defaultValue": "Trust",
+			"metadata": {
+				"description": "Subnet for Trust"
+			}
+		},
+		"gatewaySubnetName": {
+			"type": "string",
+			"defaultValue": "GatewaySubnet",
+			"metadata": {
+				"description": "Name for gateway subnet in VNet"
+			}
+		},
+		"subnetLBName": {
+			"type": "string",
+			"defaultValue": "AppGWSubnet",
+			"metadata": {
+			  "description": "Subnet for App Gateway"
+			}
+		  },
+		  "subnetInternalLBName": {
+			"type": "string",
+			"defaultValue": "InternalLBSubnet",
+			"metadata": {
+			  "description": "Subnet for Internal LB"
+			}
+		  },
+		"mgmtSubnetPrefix": {
+			"type": "string",
+			"defaultValue": "192.168.0.0/24",
+			"metadata": {
+				"description": "Mgmt subnet CIDR"
+			}
+		},
+		"untrustSubnetPrefix": {
+			"type": "string",
+			"defaultValue": "192.168.1.0/24",
+			"metadata": {
+				"description": "Untrust subnet CIDR"
+			}
+		},
+		"trustSubnetPrefix": {
+			"type": "string",
+			"defaultValue": "192.168.2.0/24",
+			"metadata": {
+				"description": "Trust subnet CIDR"
+			}
+		},
+		"gatewaySubnetPrefix": {
+			"type": "string",
+			"defaultValue": "172.31.16.0/27",
+			"metadata": {
+				"description": "CIDR block for gateway subnet"
+			}
+		},
+		"subnetLBPrefix": {
+			"type": "string",
+			"defaultValue": "192.168.3.0/24",
+			"metadata": {
+			  "description": "App Gateway CIDR"
+			}
+		  },
+		  "subnetInternalLBPrefix": {
+			"type": "string",
+			"defaultValue": "192.168.4.0/24",
+			"metadata": {
+			  "description": "App Gateway CIDR"
+			}
+		  },
+		"ResourceGroupName1": {
+			"type": "string",
+			"defaultValue": "HUB-RG",
+			"metadata": {
+				"description": "First Resource Group Name"
+			}
+		},
+		"ResourceGroupName2": {
+			"type": "string",
+			"defaultValue": "FW-RG",
+			"metadata": {
+				"description": "Second Resource Group Name"
+			}
+		},
+		"ResourceGroupName3": {
+			"type": "string",
+			"defaultValue": "LB-RG",
+			"metadata": {
+				"description": "Third Resource Group Name"
+			}
+		}
+	},
+	"variables": {
+		"location"         : "[resourceGroup().location]",
+		"rgname"           : "[parameters('ResourceGroupName1')]",		
+		"vnetname"         : "[parameters('virtualNetworkName')]",
+		"vnetID"           : "[resourceId('Microsoft.Network/virtualNetworks',variables('vnetname'))]",
+		"mgmtSubnetRef"    : "[concat(variables('vnetID'),'/subnets/',parameters('mgmtSubnetName'))]",
+		"untrustSubnetRef" : "[concat(variables('vnetID'),'/subnets/',parameters('untrustSubnetName'))]",
+		"trustSubnetRef"   : "[concat(variables('vnetID'),'/subnets/',parameters('trustSubnetName'))]",
+		"gatewaySubnetRef" : "[concat(variables('vnetID'),'/subnets/',parameters('gatewaySubnetName'))]",
+		"subnetLBRef"	: "[concat(variables('vnetID'),'/subnets/',parameters('subnetLBName'))]",
+		"subnetInternalLBRef"	: "[concat(variables('vnetID'),'/subnets/',parameters('subnetInternalLBName'))]",
+		"subnets": [
+			{
+				"name": "[parameters('mgmtSubnetName')]",
+				"properties": {
+					"addressPrefix": "[parameters('mgmtSubnetPrefix')]",
+					"networkSecurityGroup": {
+						"id": "[resourceId(parameters('ResourceGroupName2'),'Microsoft.Network/networkSecurityGroups', concat(parameters('nsgName'), '-mgmt'))]"
+					}
+				}
+			},
+			{
+				"name": "[parameters('untrustSubnetName')]",
+				"properties": {
+					"addressPrefix": "[parameters('untrustSubnetPrefix')]"
+				}
+			},
+			{
+				"name": "[parameters('trustSubnetName')]",
+				"properties": {
+					"addressPrefix": "[parameters('trustSubnetPrefix')]",
+					"networkSecurityGroup": {
+						"id": "[resourceId(parameters('ResourceGroupName2'),'Microsoft.Network/networkSecurityGroups', concat(parameters('nsgName'), '-trust'))]"
+					}
+				}
+			},
+			{
+				"name": "[parameters('gatewaySubnetName')]",
+				"properties": {
+					"addressPrefix": "[parameters('gatewaySubnetPrefix')]"
+					
+				}
+			},
+			{
+				"name": "[parameters('subnetLBName')]",
+				"properties": {
+					"addressPrefix": "[parameters('subnetLBPrefix')]"					
+				}
+			},
+			{
+				"name": "[parameters('subnetInternalLBName')]",
+				"properties": {
+					"addressPrefix": "[parameters('subnetInternalLBPrefix')]"					
+				}
+			}
+		]
+	},
+	"resources": [
+		{
+			"name": "[variables('vnetname')]",
+			"type": "Microsoft.Network/virtualNetworks",
+			"location": "[variables('location')]",
+			"apiVersion": "2015-06-15",
+			"properties": {
+				"addressSpace": {
+					"addressPrefixes": [
+						"[parameters('virtualNetworkAddressPrefix')]",
+						"[parameters('virtualNetworkAddressPrefix1')]"
+					]
+				},
+				"subnets": "[variables('subnets')]"
+			}
+		}
+	],
+	"outputs": {
+		"vnetName": {
+			"value": "[variables('vnetname')]",
+			"type": "string"
+		}
+	}
+}
